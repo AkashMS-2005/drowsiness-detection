@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DrowsyGuard — AI Driver Safety System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050810;
+    --surface: #0d1117;
+    --card: #111827;
+    --border: #1f2937;
+    --accent: #f97316;
+    --accent2: #fb923c;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --text: #f1f5f9;
+    --muted: #64748b;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow-x: hidden;
+  }
+
+  /* ── Noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 4rem;
+    background: rgba(5, 8, 16, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+
+  .nav-logo span { color: var(--text); }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  .nav-btn {
+    background: var(--accent);
+    color: #000;
+    padding: 0.6rem 1.4rem;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover {
+    background: var(--accent2);
+    transform: translateY(-1px);
+  }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 8rem 4rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(249,115,22,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(249,115,22,0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(249,115,22,0.1);
+    border: 1px solid rgba(249,115,22,0.3);
+    color: var(--accent);
+    padding: 0.4rem 1rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    font-family: var(--mono);
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.5); }
+  }
+
+  .hero h1 {
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -2px;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 .highlight {
+    color: var(--accent);
+    display: block;
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+    font-family: var(--mono);
+    font-weight: 300;
+  }
+
+  .hero-btns {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    padding: 0.9rem 2rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(249,115,22,0.3);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    padding: 0.9rem 2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  /* ── Hero Visual ── */
+  .hero-visual {
+    position: relative;
+  }
+
+  .detection-window {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .window-bar {
+    background: var(--card);
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: var(--red); }
+  .dot.y { background: var(--yellow); }
+  .dot.g { background: var(--green); }
+
+  .window-title {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-left: 0.5rem;
+  }
+
+  .window-body {
+    padding: 1.5rem;
+    position: relative;
+  }
+
+  .face-canvas {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .face-outline {
+    width: 120px;
+    height: 150px;
+    border: 2px solid rgba(0,255,255,0.6);
+    border-radius: 50% 50% 45% 45%;
+    position: relative;
+    animation: scanFace 3s ease-in-out infinite;
+  }
+
+  @keyframes scanFace {
+    0%, 100% { border-color: rgba(0,255,255,0.6); }
+    50% { border-color: rgba(249,115,22,0.8); }
+  }
+
+  .eye-box {
+    position: absolute;
+    width: 28px;
+    height: 14px;
+    border: 1.5px solid var(--green);
+    border-radius: 3px;
+    top: 38%;
+    animation: eyeDetect 2s ease-in-out infinite;
+  }
+
+  .eye-box.left { left: 18%; }
+  .eye-box.right { right: 18%; }
+
+  @keyframes eyeDetect {
+    0%, 100% { border-color: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+    50% { border-color: var(--red); box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+  }
+
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scan 2s linear infinite;
+    opacity: 0.7;
+  }
+
+  @keyframes scan {
+    0% { top: 0%; }
+    100% { top: 100%; }
+  }
+
+  .hud-overlay {
+    position: absolute;
+    top: 1.5rem; left: 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+  }
+
+  .hud-line {
+    margin-bottom: 0.3rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .hud-label { color: var(--muted); }
+
+  .hud-val { color: var(--green); font-weight: 500; }
+  .hud-val.warn { color: var(--yellow); }
+  .hud-val.danger { color: var(--red); }
+
+  .drowsiness-bar-wrap {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .bar-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+
+  .bar-track {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+    border-radius: 3px;
+    animation: barAnim 3s ease-in-out infinite;
+  }
+
+  @keyframes barAnim {
+    0% { width: 20%; }
+    50% { width: 75%; }
+    100% { width: 20%; }
+  }
+
+  /* ── Stats ── */
+  .stats-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .stat-card {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+  }
+
+  .stat-lbl {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── Section Base ── */
+  section {
+    padding: 6rem 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .section-tag::before {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .section-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+  }
+
+  .section-sub {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 500px;
+    margin-bottom: 3rem;
+  }
+
+  /* ── How it works ── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    position: relative;
+  }
+
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 2.5rem;
+    left: 2rem;
+    right: 2rem;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), var(--accent), var(--border));
+  }
+
+  .step-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .step-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(249,115,22,0.1);
+  }
+
+  .step-num {
+    width: 40px;
+    height: 40px;
+    background: var(--accent);
+    color: #000;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-desc {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── Tech Stack ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .tech-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tech-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+
+  .tech-card:hover::before { transform: scaleX(1); }
+
+  .tech-card:hover {
+    border-color: rgba(249,115,22,0.3);
+    transform: translateY(-4px);
+  }
+
+  .tech-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .tech-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  .tech-version {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-bottom: 0.8rem;
+  }
+
+  .tech-desc {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── Results ── */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .metric-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s;
+  }
+
+  .metric-card:hover {
+    border-color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  .metric-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .metric-icon.green { background: rgba(34,197,94,0.1); }
+  .metric-icon.orange { background: rgba(249,115,22,0.1); }
+  .metric-icon.blue { background: rgba(59,130,246,0.1); }
+  .metric-icon.purple { background: rgba(168,85,247,0.1); }
+
+  .metric-val {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* ── Architecture ── */
+  .arch-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 3rem;
+  }
+
+  .arch-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .layer-box {
+    flex: 1;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid;
+  }
+
+  .layer-box.input   { background: rgba(59,130,246,0.1);  border-color: rgba(59,130,246,0.3);  color: #60a5fa; }
+  .layer-box.conv    { background: rgba(168,85,247,0.1);  border-color: rgba(168,85,247,0.3);  color: #c084fc; }
+  .layer-box.pool    { background: rgba(34,197,94,0.1);   border-color: rgba(34,197,94,0.3);   color: #4ade80; }
+  .layer-box.dense   { background: rgba(249,115,22,0.1);  border-color: rgba(249,115,22,0.3);  color: #fb923c; }
+  .layer-box.output  { background: rgba(239,68,68,0.1);   border-color: rgba(239,68,68,0.3);   color: #f87171; }
+
+  .arch-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding-left: 1rem;
+  }
+
+  /* ── Code Block ── */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 2rem;
+  }
+
+  .code-header {
+    background: var(--card);
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .code-title {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .code-lang {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    background: rgba(249,115,22,0.1);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+  }
+
+  pre {
+    padding: 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: #e2e8f0;
+    overflow-x: auto;
+  }
+
+  .c-keyword { color: #c084fc; }
+  .c-string  { color: #4ade80; }
+  .c-comment { color: #475569; }
+  .c-func    { color: #60a5fa; }
+  .c-num     { color: #fb923c; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 3rem 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 100%;
+  }
+
+  .footer-logo {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .footer-logo span { color: var(--text); }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--accent); }
+
+  .footer-copy {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* ── Alert Demo ── */
+  .alert-demo {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .alert-state {
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid;
+  }
+
+  .alert-state.awake {
+    background: rgba(34,197,94,0.05);
+    border-color: rgba(34,197,94,0.2);
+  }
+
+  .alert-state.warning {
+    background: rgba(234,179,8,0.05);
+    border-color: rgba(234,179,8,0.2);
+  }
+
+  .alert-state.danger {
+    background: rgba(239,68,68,0.05);
+    border-color: rgba(239,68,68,0.2);
+    animation: dangerPulse 2s infinite;
+  }
+
+  @keyframes dangerPulse {
+    0%, 100% { border-color: rgba(239,68,68,0.2); }
+    50% { border-color: rgba(239,68,68,0.6); box-shadow: 0 0 20px rgba(239,68,68,0.1); }
+  }
+
+  .state-icon { font-size: 2.5rem; margin-bottom: 0.8rem; display: block; }
+  .state-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .state-desc {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .state-label.g { color: var(--green); }
+  .state-label.y { color: var(--yellow); }
+  .state-label.r { color: var(--red); }
+
+  /* ── Divider ── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 0 4rem;
+    max-width: calc(100% - 8rem);
+  }
+
+  /* ── Scroll animations ── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+  }
+
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Drowsy<span>Guard</span></div>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#tech">Tech Stack</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#model">Model</a></li>
+  </ul>
+  <a href="https://github.com/AkashMS-2005/drowsiness-detection" target="_blank" class="nav-btn">⭐ GitHub</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-badge">AI Safety System — Active</div>
+      <h1>
+        Real-Time
+        <span class="highlight">Drowsiness</span>
+        Detection
+      </h1>
+      <p>
+        A deep learning powered system that monitors driver alertness
+        in real-time using CNN and OpenCV — trained on 48,000 eye images
+        with 99% accuracy.
+      </p>
+      <div class="hero-btns">
+        <a href="https://github.com/AkashMS-2005/drowsiness-detection" target="_blank" class="btn-primary">
+          View on GitHub →
+        </a>
+        <a href="#how" class="btn-secondary">
+          How it Works
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="detection-window">
+        <div class="window-bar">
+          <div class="dot r"></div>
+          <div class="dot y"></div>
+          <div class="dot g"></div>
+          <span class="window-title">Driver Drowsiness Detection — LIVE</span>
+        </div>
+        <div class="window-body">
+          <div class="face-canvas">
+            <div class="scan-line"></div>
+            <div class="face-outline">
+              <div class="eye-box left"></div>
+              <div class="eye-box right"></div>
+            </div>
+            <div class="hud-overlay">
+              <div class="hud-line">
+                <span class="hud-label">Status :</span>
+                <span class="hud-val" id="statusVal">AWAKE</span>
+              </div>
+              <div class="hud-line">
+                <span class="hud-label">Score  :</span>
+                <span class="hud-val warn" id="scoreVal">3/15</span>
+              </div>
+              <div class="hud-line">
+                <span class="hud-label">Alerts :</span>
+                <span class="hud-val">0</span>
+              </div>
+              <div class="hud-line">
+                <span class="hud-label">Frame  :</span>
+                <span class="hud-val" id="frameVal">142</span>
+              </div>
+            </div>
+            <div class="drowsiness-bar-wrap">
+              <div class="bar-label">DROWSINESS LEVEL</div>
+              <div class="bar-track">
+                <div class="bar-fill"></div>
+              </div>
+            </div>
+          </div>
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="stat-num">99%</span>
+              <span class="stat-lbl">Accuracy</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">48K</span>
+              <span class="stat-lbl">Images</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">Real</span>
+              <span class="stat-lbl">Time</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-tag">Process</div>
+  <h2 class="section-title">How It Works</h2>
+  <p class="section-sub">Four intelligent steps to detect drowsiness in real-time and alert the driver before accidents occur.</p>
+
+  <div class="steps fade-up">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-title">Face Detection</div>
+      <div class="step-desc">Haar Cascade detects the driver's face from live webcam feed in every frame.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-title">Eye Extraction</div>
+      <div class="step-desc">Eye regions are mathematically extracted from the face bounding box — no eye cascade needed.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-title">CNN Prediction</div>
+      <div class="step-desc">Trained CNN model predicts open/closed state for each eye with 99% accuracy.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-title">Alert System</div>
+      <div class="step-desc">Drowsiness score tracked over frames — audio alert fires when threshold exceeded.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ALERT STATES -->
+<section>
+  <div class="section-tag">Detection States</div>
+  <h2 class="section-title">Alert System</h2>
+  <p class="section-sub">Three distinct states monitored continuously in real-time.</p>
+
+  <div class="alert-demo fade-up">
+    <div class="alert-state awake">
+      <span class="state-icon">👁️</span>
+      <div class="state-label g">AWAKE</div>
+      <div class="state-desc">Eyes open detected. Driver is alert. Score decreasing. Green indicator active.</div>
+    </div>
+    <div class="alert-state warning">
+      <span class="state-icon">😪</span>
+      <div class="state-label y">DROWSY</div>
+      <div class="state-desc">Eyes partially closed. Score increasing. Yellow warning zone. Driver monitored.</div>
+    </div>
+    <div class="alert-state danger">
+      <span class="state-icon">🚨</span>
+      <div class="state-label r">ALERT!</div>
+      <div class="state-desc">Critical drowsiness detected! Audio beep fires. Red border flashes. Immediate action required.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section id="tech">
+  <div class="section-tag">Technology</div>
+  <h2 class="section-title">Tech Stack</h2>
+  <p class="section-sub">Built with industry-standard deep learning and computer vision tools.</p>
+
+  <div class="tech-grid fade-up">
+    <div class="tech-card">
+      <div class="tech-icon">🧠</div>
+      <div class="tech-name">TensorFlow / Keras</div>
+      <div class="tech-version">v2.20.0</div>
+      <div class="tech-desc">CNN model training with BatchNorm, Dropout and EarlyStopping callbacks.</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">📷</div>
+      <div class="tech-name">OpenCV</div>
+      <div class="tech-version">v4.13.0</div>
+      <div class="tech-desc">Real-time video capture, face detection and eye region extraction.</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🐍</div>
+      <div class="tech-name">Python</div>
+      <div class="tech-version">v3.13.7</div>
+      <div class="tech-desc">Core language powering the entire detection pipeline.</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">📊</div>
+      <div class="tech-name">NumPy / Matplotlib</div>
+      <div class="tech-version">Latest</div>
+      <div class="tech-desc">Data processing, augmentation and training visualization.</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🔔</div>
+      <div class="tech-name">WinSound</div>
+      <div class="tech-version">Built-in</div>
+      <div class="tech-desc">Windows native audio alert system for drowsiness notification.</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">📈</div>
+      <div class="tech-name">Scikit-Learn</div>
+      <div class="tech-version">Latest</div>
+      <div class="tech-desc">Model evaluation with confusion matrix, ROC curve and classification report.</div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="section-tag">Performance</div>
+  <h2 class="section-title">Model Results</h2>
+  <p class="section-sub">Exceptional performance metrics achieved after training on 48,000 eye images.</p>
+
+  <div class="results-grid fade-up">
+    <div class="metric-card">
+      <div class="metric-icon green">🎯</div>
+      <div>
+        <div class="metric-val">99%</div>
+        <div class="metric-label">Overall Test Accuracy</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon orange">📈</div>
+      <div>
+        <div class="metric-val">96.7%</div>
+        <div class="metric-label">Validation Accuracy</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon blue">🧪</div>
+      <div>
+        <div class="metric-val">0.99</div>
+        <div class="metric-label">F1 Score (Both Classes)</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon purple">⚡</div>
+      <div>
+        <div class="metric-val">48,000</div>
+        <div class="metric-label">Training Images</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon green">🔄</div>
+      <div>
+        <div class="metric-val">16</div>
+        <div class="metric-label">Training Epochs (Early Stop)</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon orange">🏆</div>
+      <div>
+        <div class="metric-val">Epoch 9</div>
+        <div class="metric-label">Best Model Checkpoint</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODEL ARCHITECTURE -->
+<section id="model">
+  <div class="section-tag">Architecture</div>
+  <h2 class="section-title">CNN Architecture</h2>
+  <p class="section-sub">Deep convolutional neural network with batch normalization and dropout regularization.</p>
+
+  <div class="arch-wrap fade-up">
+    <div class="arch-layers">
+      <div class="arch-layer">
+        <div class="layer-box input">Input Layer — 80×80 Grayscale Image</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer">
+        <div class="layer-box conv">Conv2D(32) + BatchNorm + Conv2D(32) + MaxPool + Dropout(0.25)</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer">
+        <div class="layer-box conv">Conv2D(64) + BatchNorm + Conv2D(64) + MaxPool + Dropout(0.25)</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer">
+        <div class="layer-box conv">Conv2D(128) + BatchNorm + MaxPool + Dropout(0.25)</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer">
+        <div class="layer-box pool">Flatten Layer</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer">
+        <div class="layer-box dense">Dense(256) + Dropout(0.5) → Dense(128) + Dropout(0.3)</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer">
+        <div class="layer-box output">Output — Dense(1) Sigmoid → Open / Closed</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-title">train_model.py — Quick Start</span>
+      <span class="code-lang">Python</span>
+    </div>
+    <pre><span class="c-comment"># Clone and run the project</span>
+<span class="c-keyword">git</span> clone https://github.com/AkashMS-2005/drowsiness-detection.git
+<span class="c-keyword">cd</span> drowsiness-detection
+
+<span class="c-comment"># Setup environment</span>
+<span class="c-func">python</span> -m venv drowsy_env
+drowsy_env\Scripts\<span class="c-func">activate</span>
+<span class="c-func">pip</span> install tensorflow opencv-python numpy matplotlib
+
+<span class="c-comment"># Train the model</span>
+<span class="c-func">python</span> train_model.py
+
+<span class="c-comment"># Run real-time detection</span>
+<span class="c-func">python</span> realtime_detect.py</pre>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Drowsy<span>Guard</span></div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/AkashMS-2005/drowsiness-detection" target="_blank">GitHub</a></li>
+    <li><a href="#how">Documentation</a></li>
+    <li><a href="#results">Results</a></li>
+  </ul>
+  <div class="footer-copy">Built by Akash M S — 2026</div>
+</footer>
+
+<script>
+  // Scroll animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  // Animate HUD
+  let frame = 142;
+  let score = 3;
+  let statusEl = document.getElementById('statusVal');
+  let scoreEl  = document.getElementById('scoreVal');
+  let frameEl  = document.getElementById('frameVal');
+
+  setInterval(() => {
+    frame++;
+    frameEl.textContent = frame;
+
+    score = Math.floor(Math.random() * 15);
+    scoreEl.textContent = score + '/15';
+
+    if (score > 10) {
+      statusEl.textContent = 'DROWSY';
+      statusEl.style.color = '#ef4444';
+    } else {
+      statusEl.textContent = 'AWAKE';
+      statusEl.style.color = '#22c55e';
+    }
+  }, 800);
+</script>
+
+</body>
+</html>
